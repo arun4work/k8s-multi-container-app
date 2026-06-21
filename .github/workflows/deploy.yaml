@@ -96,6 +96,7 @@ jobs:
         with:
           context: ./server # Path to directory containing server Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64 # Build multi-arch images for broader compatibility
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-api:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-api:${{ github.sha }}
@@ -105,6 +106,7 @@ jobs:
         with:
           context: ./client # Path to directory containing client Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64 # Build multi-arch images for broader compatibility
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-ui:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-ui:${{ github.sha }}
@@ -114,6 +116,7 @@ jobs:
         with:
           context: ./worker # Path to directory containing worker Dockerfile
           push: true
+          platforms: linux/amd64,linux/arm64 # Build multi-arch images for broader compatibility
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-worker:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-worker:${{ github.sha }}

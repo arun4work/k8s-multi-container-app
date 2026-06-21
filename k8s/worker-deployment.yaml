@@ -14,9 +14,10 @@ spec:
     spec:
       containers:
         - name: worker
-          image: k8s-multi-container-app-worker:dev
+          image: abahal/k8s-multi-container-app-worker:latest
           # Crucial for local dev: tells K8s to look at your machine's local docker registry instead of Docker Hub
-          imagePullPolicy: Never
+          # imagePullPolicy: Never
+          imagePullPolicy: Always
           env:
             - name: REDIS_HOST
               valueFrom:

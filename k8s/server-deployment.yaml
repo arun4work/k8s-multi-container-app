@@ -14,9 +14,10 @@ spec:
     spec:
       containers:
         - name: server
-          image: k8s-multi-container-app-api:dev
+          image: abahal/k8s-multi-container-app-api:latest
           # Crucial for local dev: tells K8s to look at your machine's local docker registry instead of Docker Hub
-          imagePullPolicy: Never
+          # imagePullPolicy: Never
+          imagePullPolicy: Always
           ports:
             - containerPort: 5001
           env:
