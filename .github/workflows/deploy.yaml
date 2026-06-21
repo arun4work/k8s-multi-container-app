@@ -38,6 +38,7 @@ jobs:
         run: npm run build
         env:
           NODE_ENV: production
+          VITE_API_BASE_URL: /api
 
       # NEW STEP: The Production Build Check for server
       - name: Build Server
