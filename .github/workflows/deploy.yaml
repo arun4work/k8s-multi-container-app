@@ -1,0 +1,121 @@
+name: CI/CD Pipeline
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master] # Runs when a PR is opened targeting master and catches error if any
+
+# This sets the flag globally for the whole workflow to use Node 24
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  # --- STAGE 1: Testing ---
+  test-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "npm"
+          cache-dependency-path: client/package-lock.json
+
+      # Test the Client (UI)
+      - name: Install & Test Client
+        working-directory: ./client
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm run test:run -- --reporter=github-actions
+
+      # NEW STEP: The Production Build Check for client
+      - name: Build Client
+        working-directory: ./client
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      # NEW STEP: The Production Build Check for server
+      - name: Build Server
+        working-directory: ./server
+        run: |
+          npm ci --include=dev
+          npm run build
+        env:
+          NODE_ENV: production
+
+      # NEW STEP: The Production Build Check for worker
+      - name: Build Worker
+        working-directory: ./worker
+        run: |
+          npm ci --include=dev
+          npm run build
+        env:
+          NODE_ENV: production
+
+  # --- STAGE 2: Build and Push (Only runs if Stage 1 passes) ---
+  build-and-push:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: test-and-verify # <--- THIS IS THE MAGIC KEY: It prevents building if tests fail
+    runs-on: ubuntu-latest
+    # --- THIS PART IS KEY ---
+    # These variables will be visible to the 'docker compose' command below
+    env:
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      PG_USER: ${{ secrets.PG_USER }}
+      PG_HOST: ${{ secrets.PG_HOST }}
+      PG_DATABASE: ${{ secrets.PG_DATABASE }}
+      PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+      PG_PORT: ${{ secrets.PG_PORT }}
+      REDIS_HOST: ${{ secrets.REDIS_HOST }}
+      REDIS_PORT: ${{ secrets.REDIS_PORT }}
+      VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Push Production Images
+        env:
+          # This line is the "Bridge" between GitHub Secrets and the Docker Build
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+        run: |
+          # Merge both files to get the full production context
+          docker compose -f docker-compose-prod.yaml build
+          docker compose -f docker-compose-prod.yaml push
+  # --- STAGE 3: Cloud Deployment ---
+  # deploy:
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+  #   needs: build-and-push
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     # 1. Trigger Render for Server & Worker (Image-based)
+  #     - name: Deploy API to Render
+  #       run: curl -X POST "${{ secrets.RENDER_API_DEPLOY_HOOK }}"
+
+  #     - name: Deploy Worker to Render
+  #       run: curl -X POST "${{ secrets.RENDER_WORKER_DEPLOY_HOOK }}"
+
+  # We don't need this as we linked GitHub repo to Vercel via their dashboard
+  # # 2. Deploy Frontend to Vercel (Source-based)
+  # # Note: We use Vercel for the UI because it's FREE and doesn't "sleep"
+  # - name: Deploy Client to Vercel
+  #   uses: amondnet/vercel-action@v20
+  #   with:
+  #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
+  #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+  #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+  #     working-directory: ./client
+  #     vercel-args: "--prod"
