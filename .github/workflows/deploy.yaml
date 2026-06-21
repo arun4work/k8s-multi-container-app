@@ -64,37 +64,67 @@ jobs:
     runs-on: ubuntu-latest
     # --- THIS PART IS KEY ---
     # These variables will be visible to the 'docker compose' command below
-    env:
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      PG_USER: ${{ secrets.PG_USER }}
-      PG_HOST: ${{ secrets.PG_HOST }}
-      PG_DATABASE: ${{ secrets.PG_DATABASE }}
-      PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
-      PG_PORT: ${{ secrets.PG_PORT }}
-      REDIS_HOST: ${{ secrets.REDIS_HOST }}
-      REDIS_PORT: ${{ secrets.REDIS_PORT }}
-      VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+    # env:
+    #   POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+    #   PG_USER: ${{ secrets.PG_USER }}
+    #   PG_HOST: ${{ secrets.PG_HOST }}
+    #   PG_DATABASE: ${{ secrets.PG_DATABASE }}
+    #   PG_PASSWORD: ${{ secrets.PG_PASSWORD }}
+    #   PG_PORT: ${{ secrets.PG_PORT }}
+    #   REDIS_HOST: ${{ secrets.REDIS_HOST }}
+    #   REDIS_PORT: ${{ secrets.REDIS_PORT }}
+    #   VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
     steps:
+      # 1. Pull down your repository code so the workflow can access the Dockerfiles
       - name: Checkout code
         uses: actions/checkout@v6
 
+      # 2. Authenticate into Docker Hub using repository secrets
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # 3. Set up Docker Buildx for faster, optimized image caching
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and Push Production Images
-        env:
-          # This line is the "Bridge" between GitHub Secrets and the Docker Build
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-        run: |
-          # Merge both files to get the full production context
-          docker compose -f docker-compose-prod.yaml build
-          docker compose -f docker-compose-prod.yaml push
+      # 4. Build and Push BACKEND (Server) Image
+      - name: Build & Push Server Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./server # Path to directory containing server Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-api:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-api:${{ github.sha }}
+      # 5. Build and Push FRONTEND (Client) Image
+      - name: Build & Push Client Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./client # Path to directory containing client Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-ui:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-ui:${{ github.sha }}
+      # 6. Build and Push BACKEND (Worker) Image
+      - name: Build & Push Worker Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./worker # Path to directory containing worker Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-worker:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-worker:${{ github.sha }}
+      # - name: Build and Push Production Images
+      #   env:
+      #     # This line is the "Bridge" between GitHub Secrets and the Docker Build
+      #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      #   run: |
+      #     # Merge both files to get the full production context
+      #     docker compose -f docker-compose-prod.yaml build
+      #     docker compose -f docker-compose-prod.yaml push
   # --- STAGE 3: Cloud Deployment ---
   # deploy:
   #   if: github.event_name == 'push' && github.ref == 'refs/heads/master'
