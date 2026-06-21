@@ -108,6 +108,8 @@ jobs:
           context: ./client # Path to directory containing client Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64 # Build multi-arch images for broader compatibility
+          build-args: |
+            VITE_API_BASE_URL=/api
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-ui:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-ui:${{ github.sha }}
