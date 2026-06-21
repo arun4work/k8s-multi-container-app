@@ -1,0 +1,13 @@
+.gitignore
+.npmignore
+.openapi-generator-ignore
+api.ts
+base.ts
+common.ts
+configuration.ts
+docs/CalculateIndexValue200Response.md
+docs/CalculateIndexValueRequest.md
+docs/FibApi.md
+docs/GetAllIndices200ResponseInner.md
+git_push.sh
+index.ts

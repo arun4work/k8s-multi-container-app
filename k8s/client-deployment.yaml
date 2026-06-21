@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+        - name: client
+          image: k8s-multi-container-app-ui:dev
+          # Crucial for local dev: tells K8s to look at your machine's local docker registry instead of Docker Hub
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          env:
+            - name: VITE_API_BASE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: VITE_API_BASE_URL

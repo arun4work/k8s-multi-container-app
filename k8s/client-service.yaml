@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: client-service
+spec:
+  type: NodePort # 1. Explicitly tells K8s this is a NodePort service
+  selector:
+    app: client
+  ports:
+    - port: 3000 # The port inside the container
+      targetPort: 3000 # Where the service routes the traffic inside the container
+      nodePort: 30000 # The actual port you will type into your browser (localhost:30000)

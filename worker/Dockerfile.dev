@@ -1,0 +1,14 @@
+# Pull Base Image
+FROM node:24-alpine
+
+# Set working directry
+WORKDIR '/app'
+
+# COPY source code
+COPY . .
+
+# Install npm packages
+RUN npm ci
+
+# Starting command for the container
+CMD [ "npm", "run", "dev" ]

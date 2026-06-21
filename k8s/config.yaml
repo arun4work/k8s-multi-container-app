@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  PG_USER: postgres
+  PG_HOST: postgres-service
+  PG_DATABASE: postgres
+  PG_PORT: "5432"
+  EXPRESS_PORT: "5001"
+  REDIS_HOST: redis-service
+  REDIS_PORT: "6379"
+  VITE_API_BASE_URL: http://localhost/api

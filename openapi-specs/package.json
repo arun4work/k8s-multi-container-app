@@ -1,0 +1,17 @@
+{
+  "name": "openapi-specs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate-api": "openapi-generator-cli generate -i ./specs/openapi.yaml -g typescript-axios -o ../client/openapi"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.30.2"
+  }
+}

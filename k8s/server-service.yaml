@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: server-service
+spec:
+  type: ClusterIP # 1. Default service type, exposes the service on a cluster-internal IP. Choosing this since we only need to access the server from within the cluster (client container).
+  selector:
+    app: server
+  ports:
+    - port: 5001
+      targetPort: 5001

@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server-deployment
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: server
+  template:
+    metadata:
+      labels:
+        app: server
+    spec:
+      containers:
+        - name: server
+          image: k8s-multi-container-app-api:dev
+          # Crucial for local dev: tells K8s to look at your machine's local docker registry instead of Docker Hub
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5001
+          env:
+            # 1. Pulling the non-sensitive values from the ConfigMap
+            - name: PG_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PG_USER
+            - name: PG_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PG_HOST
+            - name: PG_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PG_DATABASE
+            - name: PG_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: PG_PORT
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: REDIS_HOST
+            - name: REDIS_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: REDIS_PORT
+            # 2. Pulling the sensitive password securely from the Secret
+            - name: PG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: PG_PASSWORD
