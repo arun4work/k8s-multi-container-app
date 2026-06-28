@@ -10,3 +10,5 @@ spec:
       storage: 2Gi
   # For local development, we can use the hostPath storage class, which allows us to use a directory on the host machine as storage for our PVC. This is not recommended for production environments, but it works well for local development and testing.
   storageClassName: hostpath
+  # Switch from local hostpath to DigitalOcean's enterprise SSD block storage class
+  storageClassName: do-block-storage
