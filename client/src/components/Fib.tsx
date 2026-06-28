@@ -89,7 +89,13 @@ export default function Fib() {
 
   return (
     <div>
-      This is for testing...
+      <p>
+        This is a multiple container app. You can enter an index and get the
+        calculated value for that index. Which is deployed currently on a
+        kubernetes cluster in Digital Ocean Cloud Deployment service. The index
+        is stored in a postgres database and the calculated value is stored in
+        redis.
+      </p>
       <form onSubmit={submitHandler}>
         <FieldGroup>
           <Label>Enter your Index: </Label>
