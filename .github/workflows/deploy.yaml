@@ -123,35 +123,31 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-worker:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-worker:${{ github.sha }}
-      # - name: Build and Push Production Images
-      #   env:
-      #     # This line is the "Bridge" between GitHub Secrets and the Docker Build
-      #     DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      #   run: |
-      #     # Merge both files to get the full production context
-      #     docker compose -f docker-compose-prod.yaml build
-      #     docker compose -f docker-compose-prod.yaml push
-  # --- STAGE 3: Cloud Deployment ---
-  # deploy:
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-  #   needs: build-and-push
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     # 1. Trigger Render for Server & Worker (Image-based)
-  #     - name: Deploy API to Render
-  #       run: curl -X POST "${{ secrets.RENDER_API_DEPLOY_HOOK }}"
-
-  #     - name: Deploy Worker to Render
-  #       run: curl -X POST "${{ secrets.RENDER_WORKER_DEPLOY_HOOK }}"
-
-  # We don't need this as we linked GitHub repo to Vercel via their dashboard
-  # # 2. Deploy Frontend to Vercel (Source-based)
-  # # Note: We use Vercel for the UI because it's FREE and doesn't "sleep"
-  # - name: Deploy Client to Vercel
-  #   uses: amondnet/vercel-action@v20
-  #   with:
-  #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
-  #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-  #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-  #     working-directory: ./client
-  #     vercel-args: "--prod"
+  # --- STAGE 3: True Kubernetes Production Deployment to DOKS---
+  deploy-to-doks:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: build-and-push # <--- THIS IS THE MAGIC KEY: It prevents deploying if build fails
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Pull down your repository context (.yaml manifests)
+      - name: Checkout code
+        uses: actions/checkout@v6
+      # 2. Install the DigitalOcean CLI manager tool natively on the GitHub's machine
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+      # 3. # Downloads the secure access key (~/.kube/config) to GitHub's machine
+      - name: Save DigitalOcean kubeconfig
+        run: doctl kubernetes cluster kubeconfig save learning-k8s-cluster
+      # 4. Apply your core system maps and environment declarations
+      - name: Deploy Core Manifests
+        run: |
+          kubectl apply -f k8s/config.yaml
+          kubectl apply -f k8s/
+      # 5. Inject the unique image SHA to trigger a clean rolling update
+      - name: Rollout Application Images
+        run: |
+          kubectl set image deployment/server-deployment server=${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-api:${{ github.sha }}
+          kubectl set image deployment/client-deployment client=${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-ui:${{ github.sha }}
+          kubectl set image deployment/worker-deployment worker=${{ secrets.DOCKERHUB_USERNAME }}/k8s-multi-container-app-worker:${{ github.sha }}
